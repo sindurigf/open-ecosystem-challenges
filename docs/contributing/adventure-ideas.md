@@ -59,7 +59,7 @@ Adventure 01 is a useful reference: Beginner introduces Argo CD ApplicationSets 
 
 1. **Create a new file** in `ideas/` named `your-adventure-name.md`
 2. **Use the template** below to describe your idea
-3. **Open a pull request** with the title `Adventure Idea: Your Adventure Name`
+3. **[Open a pull request](https://github.com/dynatrace-oss/open-ecosystem-challenges/compare)** with the title `Adventure Idea: Your Adventure Name`
 
 No issue required. Submit your idea directly as a PR.
 

@@ -22,6 +22,8 @@ An adventure consists of:
 
 Use `00` as the adventure number during development. When your adventure is scheduled for release, maintainers will assign the final number and move it out of `planned/`.
 
+If `adventures/planned/` doesn't exist yet, create it.
+
 ```
 adventures/planned/00-adventure-name/
 ├── README.md                    # Brief intro + link to docs
@@ -169,7 +171,7 @@ Before submitting:
 
 ## Tips
 
-- **Open a draft PR early.** Get feedback on structure before completing everything.
-- **Start with one level.** Get it working before building all three.
+- **[Open a draft PR early.](https://github.com/dynatrace-oss/open-ecosystem-challenges/compare)** Get feedback on structure before completing everything.
+- **Ship one level at a time.** Each level gets its own PR — start with one, get it working, then build the next. Use `Part of #<tracking-issue>` on all but the last PR, and `Closes #<tracking-issue>` on the final one so the tracking issue closes automatically.
 - **Test on slow connections.** Codespace startup time matters.
 - **Write clear error messages.** Help participants understand what went wrong without giving away the solution.
