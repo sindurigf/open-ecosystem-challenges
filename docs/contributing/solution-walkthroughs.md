@@ -6,7 +6,7 @@ Solution walkthroughs help participants who get stuck and serve as learning reso
 
 ## How to Contribute
 
-Browse [walkthrough issues](https://github.com/dynatrace-oss/open-ecosystem-challenges/issues?q=is%3Aissue+is%3Aopen+label%3A%22solution+walkthrough%22), comment to claim a level, and submit your walkthrough as a PR. Walkthroughs can take any form:
+Browse [walkthrough issues](https://github.com/dynatrace-oss/open-ecosystem-challenges/issues?q=is%3Aissue+is%3Aopen+label%3A%22solution+walkthrough%22), comment to claim a level, and [submit your walkthrough as a PR](https://github.com/dynatrace-oss/open-ecosystem-challenges/compare). Walkthroughs can take any form:
 
 - **External content** — a blog post, video, or any public resource. Just link to it from the adventure's solutions page.
 - **In-repo** — a markdown file in `adventures/XX-adventure-name/docs/solutions/`.
