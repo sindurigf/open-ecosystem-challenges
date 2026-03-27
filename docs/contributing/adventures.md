@@ -22,8 +22,6 @@ An adventure consists of:
 
 Use `00` as the adventure number during development. When your adventure is scheduled for release, maintainers will assign the final number and move it out of `planned/`.
 
-If `adventures/planned/` doesn't exist yet, create it.
-
 ```
 adventures/planned/00-adventure-name/
 ├── README.md                    # Brief intro + link to docs
@@ -53,35 +51,37 @@ adventures/planned/00-adventure-name/
 
 ## Step-by-Step
 
-### 1. Configure the Devcontainer
+### 1. Scaffold the Files
 
-Start by setting up the environment. Check an existing adventure with a similar setup as a blueprint for what you need. For Kubernetes-based adventures, [Adventure 01](../../adventures/01-echoes-lost-in-orbit/) is a good reference.
+Run the scaffolding script to generate the skeleton for your adventure level:
 
-Create a devcontainer for each level in `.devcontainer/00-adventure-name_NN-level/` (e.g., `01-beginner`, `02-intermediate`, `03-expert`). The number prefix on levels ensures proper sorting in the GitHub UI.
-
-**devcontainer.json:**
-```json
-{
-  "name": "Adventure 00 | 🟢 Beginner",
-  "image": "mcr.microsoft.com/devcontainers/base:bullseye",
-  "features": {
-    // Add required features (docker, kubectl, etc.)
-  },
-  "postCreateCommand": "bash .devcontainer/00-adventure-name_01-beginner/post-create.sh",
-  "postStartCommand": "bash .devcontainer/00-adventure-name_01-beginner/post-start.sh",
-  "forwardPorts": []
-}
+```bash
+make new-adventure
 ```
 
+This will prompt you to select an adventure and level, then generate:
+
+- `adventures/planned/00-adventure-name/` — adventure base with `README.md`, `mkdocs.yaml`, and `docs/index.md`
+- `adventures/planned/00-adventure-name/docs/<level>.md` — level guide
+- `adventures/planned/00-adventure-name/<level>/verify.sh` — verification script skeleton
+- `.devcontainer/00-adventure-name_NN-level/` — `devcontainer.json`, `post-create.sh`, `post-start.sh`
+
+Search for `TODO` in the generated files to find everything that needs filling in.
+
+### 2. Configure the Devcontainer
+
+Open the generated `.devcontainer/00-adventure-name_NN-level/` files and fill in the TODOs.
+
+For Kubernetes-based adventures, [Adventure 01](../../adventures/01-echoes-lost-in-orbit/) is a good reference for what features and setup scripts to use.
+
 **post-create.sh** runs once when the container is created:
-- Install CLI tools
+- Install CLI tools using setup scripts from `lib/`
 - Pull container images
 - Set up one-time configurations
 
 **post-start.sh** runs every time the container starts:
 - Start services (databases, clusters, etc.)
 - Apply initial state
-- Set up port forwarding
 
 **Infrastructure constraints:**
 
@@ -89,7 +89,7 @@ Codespaces run on 2 cores and 8 GB RAM by default. Design your adventure within 
 
 Post-create should finish in under 15 minutes, but aim for well under that.
 
-### 2. Build the Working Solution
+### 3. Build the Working Solution
 
 Implement the fully working version first. This is what the solved challenge looks like where everything works correctly.
 
@@ -98,7 +98,7 @@ This approach helps you:
 - Ensure the challenge is actually solvable
 - Have a reference implementation for the solution walkthrough
 
-### 3. Introduce the Challenges
+### 4. Introduce the Challenges
 
 Work backwards from your working solution to create the "broken" state participants will fix.
 
@@ -110,48 +110,21 @@ Good challenges are:
 
 Not sure if a challenge belongs at Beginner, Intermediate, or Expert? See [Calibrating Difficulty](adventure-ideas.md#calibrating-difficulty) for concrete signals and time expectations.
 
-### 4. Write the Documentation
+### 5. Write the Documentation
 
-**Level guide (e.g., `docs/beginner.md`):**
-- Story context
-- Objectives (what success looks like)
+Fill in the generated `docs/<level>.md` — it already contains the story, objectives, and learning outcomes from the idea file. Add:
+- Architecture overview (how the level is set up)
+- UI access instructions with port numbers
+- Where to start investigating
 - Helpful links to external docs
-- No spoilers
+
+No spoilers — save those for a `solutions/<level>.md` file.
 
 See [Adventure 01's beginner level](../../adventures/01-echoes-lost-in-orbit/docs/beginner.md) for a good example.
 
-**MkDocs configuration (`mkdocs.yaml`):**
-```yaml
-site_name: '00: Adventure Name'
+### 6. Create the Verification Script
 
-nav:
-  - Introduction: index.md
-  - 'Beginner': beginner.md
-  - 'Intermediate': intermediate.md
-  - 'Expert': expert.md
-  - 'Solutions':
-      - 'Beginner': solutions/beginner.md
-      - 'Intermediate': solutions/intermediate.md
-      - 'Expert': solutions/expert.md
-```
-
-### 5. Create the Verification Script
-
-Each level needs a `verify.sh` that validates the solution and generates a completion certificate.
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../../lib/scripts/loader.sh"
-
-# Your validation logic here using shared helpers
-# Browse lib/scripts/ to see what's available
-
-# On success, generate certificate
-check_submission_readiness "adventure-name" "level"
-```
+Fill in the generated `<level>/verify.sh`. It already has the boilerplate wired up — add your checks between the `print_sub_header` and the summary block.
 
 A good verification script:
 - Passes when the challenge is solved correctly
@@ -160,7 +133,9 @@ A good verification script:
 
 **Check outcomes, not implementation.** Verify the state the participant should have reached — a service is healthy, traces are present in Jaeger, a metric is being collected — not how they got there. File content checks (`check_file_contains`) are a last resort: they break for valid alternative solutions and reward copy-pasting over understanding. If your objective says "see traces in Jaeger", your verification should check that traces exist, not that a specific import was added.
 
-### 6. Final Test Run
+Browse `lib/scripts/` to see the available helper functions.
+
+### 7. Final Test Run
 
 Before submitting:
 
