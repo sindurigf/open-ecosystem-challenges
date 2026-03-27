@@ -1,10 +1,11 @@
-# Adventure Idea: Echoes Lost in Orbit
+# Adventure Idea: 🛰️ Echoes Lost in Orbit
 
 ## Overview
 
 **Theme:** The Intergalactic Union's communication network is in disarray. The Echo Server has gone silent, a language pack rollout for a new species is failing, and the hyperspace transport system needs robust observability. As an SRE, you'll restore order by fixing GitOps configurations, stabilizing progressive delivery, and building an observability pipeline.
 
 **Skills:**
+
 - Deploy reliably across multiple environments
 - Release safely using progressive delivery
 - Observe distributed systems with tracing and metrics
@@ -12,6 +13,7 @@
 **Technologies:** Argo CD, Argo Rollouts, OpenTelemetry, Prometheus, Jaeger, Kubernetes
 
 **Levels:**
+
 - 🟢 Beginner: Fix a broken multi-environment GitOps setup
 - 🟡 Intermediate: Stabilize a failing canary rollout with metrics-based analysis
 - 🔴 Expert: Build an observability pipeline to validate traffic before promoting releases
