@@ -8,7 +8,7 @@
         cp ideas/adventure-idea-template.md ideas/your-adventure-name.md
   3. Replace every [bracketed placeholder] with your content.
      Keep all formatting (headings, bold labels, etc.) exactly as they appear.
-  4. Remove all HTML comments (<!-- ... -->).
+  4. Remove all HTML comments.
   5. Commit your changes and open a pull request with the title:
         Adventure Idea: [emoji] Your Adventure Name
   ========================================================================= -->
@@ -40,14 +40,15 @@
 ## Levels
 
 <!-- =========================================================================
-  Delete any level block you don't need.
+  Each level is a standalone challenge. Include Beginner, Intermediate,
+  and/or Expert - delete any you don't need.
+
+  DIFFICULTY GUIDE:
+    🟢 Beginner - First encounter. Solvable in under an hour with just the docs.
+    🟡 Intermediate - Has used the tool before. Integration and non-obvious failure modes.
+    🔴 Expert - Qualitatively harder. Requires deep architectural understanding.
 
   SECTION GUIDE - each level needs all six #### sections:
-
-  ### 🟢 Beginner / 🟡 Intermediate / 🔴 Expert: [Level Name]
-    🟢 First encounter. Solvable in under an hour with just the docs.
-    🟡 Has used the tool before. Integration and non-obvious failure modes.
-    🔴 Qualitatively harder. Requires deep architectural understanding.
 
   #### Description
     One sentence summarizing what the participant does.
