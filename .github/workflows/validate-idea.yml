@@ -1,0 +1,88 @@
+name: Validate Adventure Idea
+
+# Runs on PRs that touch ideas/*.md.
+# The * glob excludes dot-folders, so ideas/.implemented/ is already filtered
+# by the path pattern. We also filter it explicitly in step 4.
+on:
+  pull_request:
+    paths:
+      - 'ideas/*.md'
+
+jobs:
+  validate:
+    name: Validate idea file format
+    runs-on: ubuntu-latest  # A fresh Ubuntu VM is spun up for each run.
+
+    steps:
+
+      # Check PR title before checkout — fast fail with no runner cost.
+      - name: Check PR title format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "PR title: $PR_TITLE"
+          echo "$PR_TITLE" | grep -qE "^Adventure Idea: .+" || {
+            echo "❌ PR title must start with 'Adventure Idea: ' followed by the adventure name."
+            echo "   Example: Adventure Idea: 📚 The Digital Codex"
+            exit 1
+          }
+          echo "✅ PR title format is valid"
+
+      # fetch-depth: 0 is required so git diff can compare against the base branch.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The checkout action does not restore executable bits from git.
+      - name: Make validation script executable
+        run: chmod +x scripts/validate-idea.sh
+
+      # Only validate files *added* by this PR (not modified/deleted).
+      # Excludes the template and .implemented/ as a belt-and-suspenders
+      # on top of the workflow path filter.
+      # || true prevents grep from failing the step when no files match.
+      - name: Find added idea files
+        id: find-files
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          IDEA_FILES=$(
+            git diff --name-only --diff-filter=A "origin/$BASE_REF" HEAD \
+            | grep "^ideas/" \
+            | grep "\.md$" \
+            | grep -v "adventure-idea-template.md" \
+            | grep -v "\.implemented/" \
+            || true
+          )
+
+          if [[ -z "$IDEA_FILES" ]]; then
+            echo "No new idea files detected in this PR — nothing to validate."
+          else
+            echo "New idea files to validate:"
+            echo "$IDEA_FILES"
+          fi
+
+          {
+            echo "IDEA_FILES<<EOF"
+            echo "$IDEA_FILES"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Validate idea files
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$IDEA_FILES" ]]; then
+            echo "No new idea files to validate. Skipping."
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            # Skip blank lines that can appear from the heredoc.
+            [[ -z "$file" ]] && continue
+            ./scripts/validate-idea.sh "$file"
+          done <<< "$IDEA_FILES"
+
+          echo ""
+          echo "✅ All idea files passed validation."
