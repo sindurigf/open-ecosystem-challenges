@@ -15,6 +15,10 @@
 # failure before exiting, so the contributor sees everything at once.
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/scripts/idea-parser.sh
+source "$SCRIPT_DIR/../lib/scripts/idea-parser.sh"
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -62,6 +66,10 @@ pass "File guard passed"
 # ---------------------------------------------------------------------------
 ERRORS_BEFORE=${#ERRORS[@]}
 
+grep -qE "$ADVENTURE_HEADER_PATTERN" "$FILE" \
+  || fail "Missing or incomplete file header — first line must be: # Adventure Idea: [emoji] [Your Adventure Name]"
+parse_adventure_header "$FILE"
+
 grep -q "^## Overview" "$FILE" \
   || fail "Missing required section: '## Overview' — use ATX heading style (## Overview), not bold text (**Overview**) or underline-style headings"
 
@@ -75,49 +83,74 @@ grep -q "^## Levels" "$FILE" \
 # ---------------------------------------------------------------------------
 ERRORS_BEFORE=${#ERRORS[@]}
 
-grep -q "^\*\*Theme:\*\*" "$FILE" \
-  || fail "Missing required Overview field: '**Theme:**'"
+theme=$(extract_overview_field "$FILE" "Theme")
+printf '%s' "$theme" | grep -q '\S' \
+  || fail "Missing or empty required field: '**Theme:**' — add 2-3 sentences after the field label"
 
 grep -q "^\*\*Skills:\*\*" "$FILE" \
   || fail "Missing required Overview field: '**Skills:**'"
 
-grep -q "^\*\*Technologies:\*\*" "$FILE" \
-  || fail "Missing required Overview field: '**Technologies:**'"
+technologies=$(extract_overview_field "$FILE" "Technologies")
+printf '%s' "$technologies" | grep -q '\S' \
+  || fail "Missing or empty required field: '**Technologies:**' — list the tools on the same line"
 
 [[ ${#ERRORS[@]} -eq $ERRORS_BEFORE ]] && pass "Required Overview fields present"
 
 # ---------------------------------------------------------------------------
-# Check 4 — Required H4 subsections (global presence check)
+# Check 4 — Level heading format and parseability
 # ---------------------------------------------------------------------------
-# Confirms all six required subsection types appear somewhere in the file.
-# Global check only — won't catch a level missing a section if another has it.
+# new-adventure.sh parses each ### heading via parse_level_heading() to extract
+# emoji, difficulty, name, and slug. We validate format here AND exercise the
+# same parser so both scripts stay in sync.
 
 ERRORS_BEFORE=${#ERRORS[@]}
 
-HINT="— use ATX heading style (#### Section Name), not bold text or underline-style headings"
+if ! grep -q '^### ' "$FILE"; then
+  fail "No level headings found — add at least one '### EMOJI DIFFICULTY: Name' heading under '## Levels'"
+else
+  while IFS= read -r heading; do
+    stripped="${heading#\#\#\# }"
 
-grep -q "^#### Description" "$FILE" \
-  || fail "Missing required subsection: '#### Description' $HINT"
+    if echo "$heading" | grep -qE "$LEVEL_HEADING_PATTERN"; then
+      parse_level_heading "$stripped"
+      [[ -n "$level_emoji" ]]      || fail "Could not parse emoji from: '$heading'"
+      [[ -n "$level_difficulty" ]] || fail "Could not parse difficulty from: '$heading'"
+      [[ -n "$level_name" ]]       || fail "Could not parse level name from: '$heading'"
+      [[ -n "$level_slug" ]]       || fail "Could not parse level slug from: '$heading'"
+    else
+      fail "Malformed level heading: '$heading' — expected format: ### 🟢 Beginner: Level Name"
+    fi
+  done < <(grep '^### ' "$FILE")
+fi
 
-grep -q "^#### Story" "$FILE" \
-  || fail "Missing required subsection: '#### Story' $HINT"
+[[ ${#ERRORS[@]} -eq $ERRORS_BEFORE ]] && pass "Level heading format valid"
 
-grep -q "^#### The Problem" "$FILE" \
-  || fail "Missing required subsection: '#### The Problem' $HINT"
+# ---------------------------------------------------------------------------
+# Check 5 — Required subsections present and non-empty for each level
+# ---------------------------------------------------------------------------
+# Checks every level individually so a section missing from one level is caught
+# even if another level has it. Mirrors exactly what new-adventure.sh extracts.
 
-grep -q "^#### Objective" "$FILE" \
-  || fail "Missing required subsection: '#### Objective' $HINT"
+ERRORS_BEFORE=${#ERRORS[@]}
 
-grep -q "^#### What You'll Learn" "$FILE" \
-  || fail "Missing required subsection: '#### What You'll Learn' $HINT"
+while IFS= read -r heading; do
+  stripped="${heading#\#\#\# }"
 
-grep -q "^#### Tools & Infrastructure" "$FILE" \
-  || fail "Missing required subsection: '#### Tools & Infrastructure' $HINT"
+  desc=$(extract_level_description "$FILE" "$stripped")
+  [[ -n "$desc" ]] \
+    || fail "Level '$stripped': '#### Description' is missing or has no content"
+
+  for section in "Story" "The Problem" "Objective" "What You'll Learn" "Tools & Infrastructure"; do
+    content=$(extract_level_section "$FILE" "$stripped" "$section")
+    printf '%s' "$content" | grep -q '\S' \
+      || fail "Level '$stripped': '#### $section' is missing or has no content"
+  done
+done < <(grep '^### ' "$FILE")
 
 [[ ${#ERRORS[@]} -eq $ERRORS_BEFORE ]] && pass "All required level sections present"
 
 # ---------------------------------------------------------------------------
-# Check 5 — No unfilled template placeholders (Python one-liner)
+# Check 6 — No unfilled template placeholders (Python one-liner)
 # ---------------------------------------------------------------------------
 # Shell regex can't cleanly distinguish [placeholder] from [link text](url).
 # Python's negative lookahead (?!\() handles this: matches [text] not followed
