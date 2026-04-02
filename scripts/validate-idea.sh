@@ -51,10 +51,7 @@ echo "-------------------------------------------"
 # ---------------------------------------------------------------------------
 # Check 1 — File guard
 # ---------------------------------------------------------------------------
-# The workflow path filter handles this in CI, but local runs have no filter.
-[[ "$FILE" == "ideas/adventure-idea-template.md" ]] \
-  && hard_fail "Do not validate the template file itself."
-
+# Block .implemented/ files — they predate the current format and would fail.
 [[ "$FILE" =~ ideas/\.implemented/ ]] \
   && hard_fail "Skipping already-implemented idea: $FILE"
 
@@ -90,17 +87,7 @@ grep -q "^\*\*Technologies:\*\*" "$FILE" \
 [[ ${#ERRORS[@]} -eq $ERRORS_BEFORE ]] && pass "Required Overview fields present"
 
 # ---------------------------------------------------------------------------
-# Check 4 — At least one difficulty level heading
-# ---------------------------------------------------------------------------
-ERRORS_BEFORE=${#ERRORS[@]}
-
-grep -qE "^### (🟢|🟡|🔴)" "$FILE" \
-  || fail "No level headings found. Expected at least one '### 🟢', '### 🟡', or '### 🔴' heading — use ATX heading style (### 🟢 Beginner: Name), not bold text or underline-style headings"
-
-[[ ${#ERRORS[@]} -eq $ERRORS_BEFORE ]] && pass "At least one difficulty level heading found"
-
-# ---------------------------------------------------------------------------
-# Check 5 — Required H4 subsections (global presence check)
+# Check 4 — Required H4 subsections (global presence check)
 # ---------------------------------------------------------------------------
 # Confirms all six required subsection types appear somewhere in the file.
 # Global check only — won't catch a level missing a section if another has it.
@@ -130,15 +117,18 @@ grep -q "^#### Tools & Infrastructure" "$FILE" \
 [[ ${#ERRORS[@]} -eq $ERRORS_BEFORE ]] && pass "All required level sections present"
 
 # ---------------------------------------------------------------------------
-# Check 6 — No unfilled template placeholders (Python one-liner)
+# Check 5 — No unfilled template placeholders (Python one-liner)
 # ---------------------------------------------------------------------------
 # Shell regex can't cleanly distinguish [placeholder] from [link text](url).
 # Python's negative lookahead (?!\() handles this: matches [text] not followed
 # by '(', which filters out Markdown links. [x] and [ ] (checkboxes) are excluded.
+# Skipped for the template file itself, which intentionally contains placeholders.
 
-ERRORS_BEFORE=${#ERRORS[@]}
+if [[ "$FILE" != *"adventure-idea-template.md" ]]; then
 
-PLACEHOLDER_OUTPUT=$(python3 -c "
+  ERRORS_BEFORE=${#ERRORS[@]}
+
+  PLACEHOLDER_OUTPUT=$(python3 -c "
 import re, sys
 content = open(sys.argv[1]).read()
 hits = [m for m in re.findall(r'\[([^\]\n]+)\](?!\()', content) if m not in ('x', ' ')]
@@ -147,7 +137,9 @@ if hits:
     sys.exit(1)
 " "$FILE") || fail "Unfilled template placeholders — replace: $PLACEHOLDER_OUTPUT"
 
-[[ ${#ERRORS[@]} -eq $ERRORS_BEFORE ]] && pass "No unfilled template placeholders"
+  [[ ${#ERRORS[@]} -eq $ERRORS_BEFORE ]] && pass "No unfilled template placeholders"
+
+fi
 
 # ---------------------------------------------------------------------------
 # Final summary

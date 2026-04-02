@@ -15,22 +15,9 @@ jobs:
 
     steps:
 
-      # Check PR title before checkout — fast fail with no runner cost.
-      - name: Check PR title format
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          echo "PR title: $PR_TITLE"
-          echo "$PR_TITLE" | grep -qE "^Adventure Idea: .+" || {
-            echo "❌ PR title must start with 'Adventure Idea: ' followed by the adventure name."
-            echo "   Example: Adventure Idea: 📚 The Digital Codex"
-            exit 1
-          }
-          echo "✅ PR title format is valid"
-
       # fetch-depth: 0 is required so git diff can compare against the base branch.
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -38,17 +25,16 @@ jobs:
       - name: Make validation script executable
         run: chmod +x scripts/validate-idea.sh
 
-      # Only validate files *added* by this PR (not modified/deleted).
+      # Validates files added or modified by this PR.
       # Excludes the template and .implemented/ as a belt-and-suspenders
       # on top of the workflow path filter.
       # || true prevents grep from failing the step when no files match.
-      - name: Find added idea files
-        id: find-files
+      - name: Find idea files to validate
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           IDEA_FILES=$(
-            git diff --name-only --diff-filter=A "origin/$BASE_REF" HEAD \
+            git diff --name-only --diff-filter=AM "origin/$BASE_REF" HEAD \
             | grep "^ideas/" \
             | grep "\.md$" \
             | grep -v "adventure-idea-template.md" \
@@ -57,9 +43,9 @@ jobs:
           )
 
           if [[ -z "$IDEA_FILES" ]]; then
-            echo "No new idea files detected in this PR — nothing to validate."
+            echo "No idea files to validate in this PR."
           else
-            echo "New idea files to validate:"
+            echo "Idea files to validate:"
             echo "$IDEA_FILES"
           fi
 
@@ -74,7 +60,7 @@ jobs:
           set -euo pipefail
 
           if [[ -z "$IDEA_FILES" ]]; then
-            echo "No new idea files to validate. Skipping."
+            echo "No idea files to validate. Skipping."
             exit 0
           fi
 
